@@ -1,5 +1,3 @@
-Here's a **README.md** file for your project:  
-
 ---
 
 # Q&A Dataset Generator
