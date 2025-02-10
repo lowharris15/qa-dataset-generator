@@ -14,7 +14,6 @@ import docx
 import datetime
 import random
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -97,7 +96,6 @@ class AIManager:
 
     def generate_qa_pairs(self, text: str, context: str, model_id: str) -> List[Dict[str, str]]:
         try:
-            # Format the prompt exactly as shown in the transcript
             prompt = f"""Input Text:
 {text}
 
@@ -232,11 +230,9 @@ class DatasetProcessor:
             return
 
         try:
-            # Create output directory
             output_dir = Path("output")
             output_dir.mkdir(exist_ok=True)
             
-            # Extract text based on file type
             file_extension = Path(file.name).suffix.lower()
             if file_extension == '.pdf':
                 text_chunks = self.extract_text_from_pdf(file)
@@ -250,18 +246,14 @@ class DatasetProcessor:
                 st.error("No text could be extracted from the document")
                 return
 
-            # Progress tracking
             progress_bar = st.progress(0)
             status_text = st.empty()
             
-            # Process chunks
             for i, chunk in enumerate(text_chunks):
                 try:
-                    # Generate QA pairs
                     qa_pairs = self.ai_manager.generate_qa_pairs(chunk, context, selected_model)
                     self.qa_pairs.extend(qa_pairs)
 
-                    # Show sample QA pairs in a more readable format
                     if i == 0 and qa_pairs:
                         st.write("### Sample Q&A Pairs")
                         for j, qa in enumerate(qa_pairs[:3], 1):
@@ -273,7 +265,6 @@ class DatasetProcessor:
                             ---
                             """)
 
-                    # Update progress
                     progress = (i + 1) / len(text_chunks)
                     progress_bar.progress(progress)
                     status_text.text(f"Processing chunk {i + 1} of {len(text_chunks)}")
@@ -281,7 +272,6 @@ class DatasetProcessor:
                 except Exception as e:
                     st.error(f"Error processing chunk {i + 1}: {str(e)}")
 
-            # Save dataset with improved metadata
             output_path = output_dir / self.output_file
             with open(output_path, 'w', encoding='utf-8') as f:
                 json.dump({
@@ -300,7 +290,6 @@ class DatasetProcessor:
             status_text.text("Processing complete!")
             st.success(f"Q&A dataset saved to {output_path}")
             
-            # Display statistics with improved formatting
             st.markdown("### Dataset Statistics")
             st.markdown(f"""
             - **Total Q&A pairs generated:** {len(self.qa_pairs)}
@@ -308,7 +297,6 @@ class DatasetProcessor:
             - **Average Q&A pairs per chunk:** {len(self.qa_pairs)/len(text_chunks):.1f}
             """)
 
-            # Display random samples for verification
             if self.qa_pairs:
                 st.markdown("### Random Sample Q&A Pairs")
                 random_samples = random.sample(self.qa_pairs, min(3, len(self.qa_pairs)))
@@ -329,22 +317,18 @@ def main():
     st.set_page_config(page_title="Q&A Dataset Generator", layout="wide")
     st.title("Q&A Dataset Generator")
 
-    # Initialize session state
     if 'api_keys' not in st.session_state:
         st.session_state.api_keys = {}
 
-    # Sidebar for settings
     with st.sidebar:
         st.header("Settings")
         
-        # AI Provider Selection
         ai_provider = st.selectbox(
             "Select AI Provider",
             ["OpenAI", "Anthropic", "Google", "Ollama"],
             key="ai_provider"
         )
 
-        # API Key Input
         api_key = st.text_input(
             f"{ai_provider} API Key",
             type="password",
@@ -355,43 +339,36 @@ def main():
             st.session_state[f"{ai_provider.lower()}_api_key"] = api_key
 
     try:
-        # Initialize AI Manager
         ai_manager = AIManager(ai_provider)
         available_models = ai_manager.get_available_models()
         
         if available_models:
-            # Main content area
             col1, col2 = st.columns(2)
             
             with col1:
-                # Model Selection
                 selected_model = st.selectbox(
                     "Select AI Model",
                     options=list(available_models.keys()),
                     key="selected_model"
                 )
 
-                # File uploader
                 uploaded_file = st.file_uploader(
                     "Upload document",
                     type=["pdf", "doc", "docx"]
                 )
 
             with col2:
-                # Context Input
                 context = st.text_area(
                     "Enter context for Q&A generation",
                     help="This context will be used to frame the questions appropriately",
                     height=100
                 )
 
-                # Output file name
                 output_file = st.text_input(
                     "Output JSON filename",
                     value="qa_dataset.json"
                 )
 
-            # Process button
             if st.button("Generate Q&A Dataset", type="primary"):
                 if uploaded_file is not None and context:
                     processor = DatasetProcessor(ai_manager, output_file)
